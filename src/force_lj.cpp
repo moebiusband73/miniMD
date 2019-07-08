@@ -35,7 +35,6 @@
 #include <cmath>
 
 #include <force_lj.h>
-#include <openmp.h>
 #include <likwid-markers.h>
 
 #ifndef VECTORLENGTH
@@ -174,8 +173,7 @@ void ForceLJ::compute_fullneigh(Atom &atom, Neighbor &neighbor, int me)
         f[i * PAD + 2] = 0.0;
     }
 
-
-    LIKWID_MARKER_START("fullneigh-soa");
+    LIKWID_MARKER_START("fullneigh");
     // loop over all neighbors of my atoms
     // store force on atom i
     for(int i = 0; i < nlocal; i++) {
@@ -210,7 +208,7 @@ void ForceLJ::compute_fullneigh(Atom &atom, Neighbor &neighbor, int me)
 
     }
 
-    LIKWID_MARKER_STOP("fullneigh-soa");
+    LIKWID_MARKER_STOP("fullneigh");
 
     t_eng_vdwl *= 4.0;
     t_virial *= 0.5;
