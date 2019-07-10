@@ -93,12 +93,9 @@ void ForceLJ::compute_halfneigh(Atom &atom, Neighbor &neighbor, int me)
         f[i * PAD + 2] = 0.0;
     }
 
+    LIKWID_MARKER_START("halfneigh");
     // loop over all neighbors of my atoms
     // store force on both atoms i and j
-    MMD_float t_energy = 0;
-    MMD_float t_virial = 0;
-
-    LIKWID_MARKER_START("halfneigh");
     for(int i = 0; i < nlocal; i++) {
         neighs = &neighbor.neighbors[i * neighbor.maxneighs];
         const int numneighs = neighbor.numneigh[i];
@@ -140,9 +137,6 @@ void ForceLJ::compute_halfneigh(Atom &atom, Neighbor &neighbor, int me)
         f[i * PAD + 2] += fiz;
     }
     LIKWID_MARKER_STOP("halfneigh");
-
-    eng_vdwl += t_energy;
-    virial += t_virial;
 }
 
 //optimised version of compute
@@ -154,15 +148,12 @@ void ForceLJ::compute_halfneigh(Atom &atom, Neighbor &neighbor, int me)
 //    -use pragma simd to force vectorization of inner loop
 void ForceLJ::compute_fullneigh(Atom &atom, Neighbor &neighbor, int me)
 {
-    int nlocal, nall;
     int* neighs;
-    MMD_float* x, *f;
+    const int nlocal = atom.nlocal;
+    const int nall = atom.nlocal + atom.nghost;
 
-    MMD_float t_eng_vdwl = 0;
-    MMD_float t_virial = 0;
-
-    nlocal = atom.nlocal;
-    nall = atom.nlocal + atom.nghost;
+    MMD_float* x = &atom.x[0][0];
+    MMD_float* f = &atom.f[0][0];
 
     x = &atom.x[0][0];
     f = &atom.f[0][0];
@@ -174,8 +165,7 @@ void ForceLJ::compute_fullneigh(Atom &atom, Neighbor &neighbor, int me)
         f[i * PAD + 2] = 0.0;
     }
 
-
-    LIKWID_MARKER_START("fullneigh-soa");
+    LIKWID_MARKER_START("fullneigh");
     // loop over all neighbors of my atoms
     // store force on atom i
     for(int i = 0; i < nlocal; i++) {
@@ -184,6 +174,7 @@ void ForceLJ::compute_fullneigh(Atom &atom, Neighbor &neighbor, int me)
         const MMD_float xtmp = x[i * PAD + 0];
         const MMD_float ytmp = x[i * PAD + 1];
         const MMD_float ztmp = x[i * PAD + 2];
+
         MMD_float fix = 0;
         MMD_float fiy = 0;
         MMD_float fiz = 0;
@@ -194,10 +185,12 @@ void ForceLJ::compute_fullneigh(Atom &atom, Neighbor &neighbor, int me)
             const MMD_float dely = ytmp - x[j * PAD + 1];
             const MMD_float delz = ztmp - x[j * PAD + 2];
             const MMD_float rsq = delx * delx + dely * dely + delz * delz;
+
             if(rsq < cutforcesq) {
                 const MMD_float sr2 = 1.0 / rsq;
                 const MMD_float sr6 = sr2 * sr2 * sr2 * sigma6;
                 const MMD_float force = 48.0 * sr6 * (sr6 - 0.5) * sr2 * epsilon;
+
                 fix += delx * force;
                 fiy += dely * force;
                 fiz += delz * force;
@@ -207,13 +200,6 @@ void ForceLJ::compute_fullneigh(Atom &atom, Neighbor &neighbor, int me)
         f[i * PAD + 0] += fix;
         f[i * PAD + 1] += fiy;
         f[i * PAD + 2] += fiz;
-
     }
-
-    LIKWID_MARKER_STOP("fullneigh-soa");
-
-    t_eng_vdwl *= 4.0;
-    t_virial *= 0.5;
-    eng_vdwl += t_eng_vdwl;
-    virial += t_virial;
+    LIKWID_MARKER_STOP("fullneigh");
 }
