@@ -200,15 +200,5 @@ void ForceLJ::compute_fullneigh(Atom &atom, Neighbor &neighbor, int me)
         f[i * PAD + 1] += fiy;
         f[i * PAD + 2] += fiz;
     }
-<<<<<<< HEAD
     LIKWID_MARKER_STOP("fullneigh");
-=======
-
-    LIKWID_MARKER_STOP("fullneigh");
-
-    t_eng_vdwl *= 4.0;
-    t_virial *= 0.5;
-    eng_vdwl += t_eng_vdwl;
-    virial += t_virial;
->>>>>>> d0b82b24c8571f000fa9caf4c89d571f314537ac
 }
