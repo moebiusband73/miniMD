@@ -29,7 +29,7 @@
 #define LIKWID_MARKERS_H
 
 #ifdef LIKWID_PERFMON
-#include <likwid.h>
+#include <likwid-marker.h>
 #else
 #define LIKWID_MARKER_INIT
 #define LIKWID_MARKER_THREADINIT
