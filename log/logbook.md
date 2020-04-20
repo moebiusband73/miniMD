@@ -53,7 +53,7 @@ All steps required to build the software including dependencies
 * Edit Makefile and set toolchain with the `TAG` variable
 * Edit toolchain settings in the  make include file (e.g. `include_ICC.mk` )
 * Call `make` to build. `make clean` to remove intermediate build results and
-  `make distclean` to remove all build files. To output all commands set `Q` 
+  `make distclean` to remove all build files. To output all commands set `Q`
   to empty, e.g. `make Q=`
 
 <!-----------------------------------------------------------------------------
@@ -124,7 +124,7 @@ consider to be relevant for performance.
 * Cluster Info URL: no web page
 * CPU type: Intel(R) Xeon(R) Platinum 8260L CPU @ 2.40GHz (CascadeLake SP)
 * Memory capacity: 197GB
-* Number of cores per socket: 24 
+* Number of cores per socket: 24
 * Interconnect: no high speed interconnect
 
 ### Software Environment
@@ -136,7 +136,7 @@ consider to be relevant for performance.
 **OS**:
 * Distribution: Ubuntu
 * Version: 18.04.2 LTS
-* Kernel version: Linux 4.15.0-51-generic 
+* Kernel version: Linux 4.15.0-51-generic
 
 <!-----------------------------------------------------------------------------
 Create a runtime profile. Which tool was used? How was the profile created.
@@ -202,7 +202,7 @@ for(int i = 0; i < nlocal; i++) {
 ```
 
 The atom position components are stored in array of structure data layout.
-The data access on the neighbour positions in the neighbour list are potentially 
+The data access on the neighbour positions in the neighbour list are potentially
 erratic (loaded from the `neighs[k]` array). Also the actual force calculation
 is within an if condition. This makes this loop not trivial to vectorize.
 
@@ -244,11 +244,41 @@ Document the initial performance which serves as baseline for further progress
 and is used to compute the achieved speedup. Document exactly how the baseline
 was created.
 ------------------------------------------------------------------------------>
-## Baseline
+## Baseline half-neigh
 
-* Time to solution:
-* Performance:
+The baseline is the sequential scalar variant.
+Compilation flags used:
+```
+-restrict -O3 -no-vec
+```
 
+Command line:
+```
+likwid-perfctr -g FLOPS_DP -m -C S0:2   ../miniMD-ICC  --half_neigh 1 -n 100
+```
+* Time to solution: 6.9556
+* Performance: 1535.7431 MFlop/s
+* CPI: 0.7918
+* INS TOTAL: 21897400000
+* INS ARITH: 10682030000
+
+## Baseline full-neigh
+
+The baseline is the sequential scalar variant.
+Compilation flags used:
+```
+-restrict -O3 -no-vec
+```
+
+Command line:
+```
+likwid-perfctr -g FLOPS_DP -m -C S0:2   ../miniMD-ICC  --half_neigh 0 -n 100
+```
+* Time to solution: 11.41s
+* Performance: 1615.11 MFlop/s
+* CPI: 0.8224
+* INS TOTAL: 34574980000
+* INS ARITH: 18430610000
 
 <!-----------------------------------------------------------------------------
 Explain which tool was used and how the measurements were done. Store and
@@ -257,7 +287,7 @@ reference the results. If applicable discuss and explain profiles.
 ## Performance Profile <NAME-TAG>-<ID>.2
 
 <!-----------------------------------------------------------------------------
-Analysis and insights extracted from benchmarking results. Planning of more 
+Analysis and insights extracted from benchmarking results. Planning of more
 benchmarks.
 ------------------------------------------------------------------------------>
 ## Analysis <NAME-TAG>-<ID>.3
