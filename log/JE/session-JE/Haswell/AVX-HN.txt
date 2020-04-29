@@ -1,0 +1,74 @@
+--------------------------------------------------------------------------------
+CPU name:	Intel(R) Xeon(R) CPU E5-2695 v3 @ 2.30GHz
+CPU type:	Intel Xeon Haswell EN/EP/EX processor
+CPU clock:	2.30 GHz
+--------------------------------------------------------------------------------
+# Create System:
+# Done .... 
+# miniMD-Reference 1.2 (MPI+OpenMP) output ...
+# Run Settings: 
+	# MPI processes: 1
+	# OpenMP threads: 1
+	# Inputfile: in.lj.miniMD
+	# Datafile: None
+# Physics Settings: 
+	# ForceStyle: LJ
+	# Force Parameters: 1.00 1.00
+	# Units: LJ
+	# Atoms: 131072
+	# System size: 53.75 53.75 53.75 (unit cells: 32 32 32)
+	# Density: 0.844200
+	# Force cutoff: 2.500000
+	# Timestep size: 0.005000
+# Technical Settings: 
+	# Neigh cutoff: 2.800000
+	# Half neighborlists: 1
+	# Neighbor bins: 26 26 26
+	# Neighbor frequency: 20
+	# Sorting frequency: 20
+	# Thermo frequency: 100
+	# Ghost Newton: 1
+	# Use intrinsics: 0
+	# Do safe exchange: 0
+	# Size of float: 8
+
+# Starting dynamics ...
+# Timestep T U P Time
+0 1.440000e+00 0.000000e+00 1.215639e+00  0.000
+100 8.200911e-01 0.000000e+00 6.923156e-01  8.547
+
+
+# Performance Summary:
+# MPI_proc OMP_threads nsteps natoms t_total t_force t_neigh t_comm t_other performance perf/thread grep_string t_extra
+1 1 100 131072 8.546648 6.946189 1.327282 0.140811 0.132365 1533607.089104 1533607.089104 PERF_SUMMARY 0.033118
+
+
+--------------------------------------------------------------------------------
+Region halfneigh, Group 1: FLOPS_AVX
++-------------------+----------+
+|    Region Info    |  Core 2  |
++-------------------+----------+
+| RDTSC Runtime [s] | 7.021190 |
+|     call count    |      102 |
++-------------------+----------+
+
++-----------------------+---------+-------------+
+|         Event         | Counter |    Core 2   |
++-----------------------+---------+-------------+
+|   INSTR_RETIRED_ANY   |  FIXC0  | 28433010000 |
+| CPU_CLK_UNHALTED_CORE |  FIXC1  | 16117150000 |
+|  CPU_CLK_UNHALTED_REF |  FIXC2  | 16117680000 |
+|     AVX_INSTS_CALC    |   PMC0  |  4786042000 |
++-----------------------+---------+-------------+
+
++----------------------+-----------+
+|        Metric        |   Core 2  |
++----------------------+-----------+
+|  Runtime (RDTSC) [s] |    7.0212 |
+| Runtime unhalted [s] |    7.0076 |
+|      Clock [MHz]     | 2299.8669 |
+|          CPI         |    0.5668 |
+|  Packed SP [MFLOP/s] | 5453.2545 |
+|  Packed DP [MFLOP/s] | 2726.6273 |
++----------------------+-----------+
+

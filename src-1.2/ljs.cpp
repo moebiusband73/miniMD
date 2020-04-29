@@ -99,6 +99,9 @@ int main(int argc, char** argv)
   LIKWID_MARKER_INIT;
   LIKWID_MARKER_THREADINIT;
 
+  LIKWID_MARKER_REGISTER("halfneigh");
+  LIKWID_MARKER_REGISTER("fullneigh");
+
   int error = 0;
 
   if(input_file == NULL)
@@ -442,7 +445,6 @@ int main(int argc, char** argv)
   #pragma omp parallel
   {
     neighbor.build(atom);
-  
     force->compute(atom, neighbor, comm, me);
   }
 
@@ -503,4 +505,3 @@ int main(int argc, char** argv)
   MPI_Finalize();
   return 0;
 }
-
