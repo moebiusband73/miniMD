@@ -29,9 +29,10 @@
    Please read the accompanying README and LICENSE files.
 ---------------------------------------------------------------------- */
 
-#include "stdlib.h"
-#include "mpi.h"
-#include "timer.h"
+#include <cstdlib>
+#include <mpi.h>
+
+#include <timer.h>
 
 Timer::Timer()
 {

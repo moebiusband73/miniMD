@@ -279,8 +279,6 @@ void ForceEAM::compute_fullneigh(Atom &atom, Neighbor &neighbor, Comm &comm, int
   // grow energy and fp arrays if necessary
   // need to be atom->nmax in length
 
-  #pragma omp master
-  {
     eng_vdwl = 0;
     virial = 0;
     if(atom.nmax > nmax) {
@@ -288,9 +286,7 @@ void ForceEAM::compute_fullneigh(Atom &atom, Neighbor &neighbor, Comm &comm, int
       rho = new MMD_float[nmax];
       fp = new MMD_float[nmax];
     }
-  }
 
-  #pragma omp barrier
   const MMD_float* const x = atom.x;
   MMD_float* const f = atom.f;
   const int* const type = atom.type;
@@ -301,7 +297,6 @@ void ForceEAM::compute_fullneigh(Atom &atom, Neighbor &neighbor, Comm &comm, int
   // rho = density at each atom
   // loop over neighbors of my atoms
 
-  OMPFORSCHEDULE
   for(MMD_int i = 0; i < nlocal; i++) {
     int* neighs = &neighbor.neighbors[i * neighbor.maxneighs];
     const int jnum = neighbor.numneigh[i];
@@ -348,24 +343,12 @@ void ForceEAM::compute_fullneigh(Atom &atom, Neighbor &neighbor, Comm &comm, int
 
   }
 
-  // #pragma omp barrier
-  // fp = derivative of embedding energy at each atom
-  // phi = embedding energy at each atom
-
-  // communicate derivative of embedding function
-
-  #pragma omp master
-  {
     communicate(atom, comm);
-  }
-
-  #pragma omp barrier
 
   MMD_float t_virial = 0;
   // compute forces on each atom
   // loop over neighbors of my atoms
 
-  OMPFORSCHEDULE
   for(MMD_int i = 0; i < nlocal; i++) {
     int* neighs = &neighbor.neighbors[i * neighbor.maxneighs];
     const int numneigh = neighbor.numneigh[i];
@@ -440,12 +423,8 @@ void ForceEAM::compute_fullneigh(Atom &atom, Neighbor &neighbor, Comm &comm, int
 
   }
 
-  #pragma omp atomic
   virial += t_virial;
-  #pragma omp atomic
   eng_vdwl += 2.0 * evdwl;
-
-  #pragma omp barrier
 }
 
 /* ----------------------------------------------------------------------
@@ -459,12 +438,8 @@ void ForceEAM::compute_fullneigh(Atom &atom, Neighbor &neighbor, Comm &comm, int
 
 void ForceEAM::coeff(const char* arg)
 {
-
-
-
   // read funcfl file if hasn't already been read
   // store filename in Funcfl data struct
-
 
   read_file(arg);
   int n = strlen(arg) + 1;

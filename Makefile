@@ -1,24 +1,32 @@
-TAG = ICC
 
 #CONFIGURE BUILD SYSTEM
-TARGET	   = miniMD-$(TAG)
-BUILD_DIR  = ./$(TAG)
-SRC_DIR    = ./src
+TARGET	   = miniMD-$(VERSION)-$(TAG)
+BUILD_DIR  = ./$(VERSION)-$(TAG)
+SRC_DIR    = ./src-$(VERSION)
 MAKE_DIR   = ./
 Q         ?= @
 
 #DO NOT EDIT BELOW
+include $(MAKE_DIR)/config.mk
 include $(MAKE_DIR)/include_$(TAG).mk
-INCLUDES  += -I./src/includes
+include $(MAKE_DIR)/include_LIKWID.mk
+INCLUDES  += -I./$(SRC_DIR)/includes
+DEFINES   += $(OPTIONS)
 
-VPATH     = $(SRC_DIR)
 ASM       = $(patsubst $(SRC_DIR)/%.cpp, $(BUILD_DIR)/%.s,$(wildcard $(SRC_DIR)/*.cpp))
 OBJ       = $(patsubst $(SRC_DIR)/%.c, $(BUILD_DIR)/%.o,$(wildcard $(SRC_DIR)/*.c))
 OBJ      += $(patsubst $(SRC_DIR)/%.cc, $(BUILD_DIR)/%.o,$(wildcard $(SRC_DIR)/*.cc))
 OBJ      += $(patsubst $(SRC_DIR)/%.cpp, $(BUILD_DIR)/%.o,$(wildcard $(SRC_DIR)/*.cpp))
-OBJ      += $(patsubst $(SRC_DIR)/%.f90, $(BUILD_DIR)/%.o,$(wildcard $(SRC_DIR)/*.f90))
-OBJ      += $(patsubst $(SRC_DIR)/%.F90, $(BUILD_DIR)/%.o,$(wildcard $(SRC_DIR)/*.F90))
+VPATH     = $(SRC_DIR)
 CPPFLAGS := $(CPPFLAGS) $(DEFINES) $(INCLUDES)
+
+ifeq ($(ENABLE_MPI),true)
+CXX = $(MPICXX)
+else
+OBJ       += $(BUILD_DIR)/mpi.o
+INCLUDES  += -I./mpi-stubs
+VPATH     += ./mpi-stubs
+endif
 
 
 ${TARGET}: $(BUILD_DIR) $(OBJ)
@@ -36,24 +44,16 @@ $(BUILD_DIR)/%.s:  %.cpp
 	@echo "===>  GENERATE ASM  $@"
 	$(Q)$(CXX) -S $(ASFLAGS)  $(CPPFLAGS) $(CFLAGS) $< -o $@
 
-
-$(BUILD_DIR)/%.o:  %.cc
-	@echo "===>  COMPILE  $@"
-	$(Q)$(CXX) -c $(CPPFLAGS) $(CXXFLAGS) $< -o $@
-	$(Q)$(CXX) $(CPPFLAGS) -MT $(@:.d=.o) -MM  $< > $(BUILD_DIR)/$*.d
-
 $(BUILD_DIR)/%.o:  %.cpp
 	@echo "===>  COMPILE  $@"
 	$(Q)$(CXX) -c $(CPPFLAGS) $(CXXFLAGS) $< -o $@
 	$(Q)$(CXX) $(CPPFLAGS) -MT $(@:.d=.o) -MM  $< > $(BUILD_DIR)/$*.d
 
-$(BUILD_DIR)/%.o:  %.f90
+$(BUILD_DIR)/%.o:  %.c
 	@echo "===>  COMPILE  $@"
-	$(Q)$(FC) -c  $(FCFLAGS) $< -o $@
+	$(Q)$(CC) -c $(CPPFLAGS) $(CFLAGS) $< -o $@
+	$(Q)$(CC) $(CPPFLAGS) -MT $(@:.d=.o) -MM  $< > $(BUILD_DIR)/$*.d
 
-$(BUILD_DIR)/%.o:  %.F90
-	@echo "===>  COMPILE  $@"
-	$(Q)$(FC) -c  $(CPPFLAGS)  $(FCFLAGS) $< -o $@
 
 tags:
 	@echo "===>  GENERATE  TAGS"

@@ -28,20 +28,22 @@
 
    Please read the accompanying README and LICENSE files.
 ---------------------------------------------------------------------- */
-#include "stdlib.h"
-#include "stdio.h"
-#include "math.h"
-#include "mpi.h"
-#include "ljs.h"
-#include "atom.h"
-#include "integrate.h"
-#include "force.h"
-#include "neighbor.h"
-#include "comm.h"
-#include "thermo.h"
-#include "timer.h"
-#include <time.h>
-#include "variant.h"
+
+#include <cstdlib>
+#include <cstdio>
+#include <cmath>
+#include <ctime>
+#include <mpi.h>
+
+#include <ljs.h>
+#include <atom.h>
+#include <integrate.h>
+#include <force.h>
+#include <neighbor.h>
+#include <comm.h>
+#include <thermo.h>
+#include <timer.h>
+#include <variant.h>
 
 void stats(int, double*, double*, double*, double*, int, int*);
 

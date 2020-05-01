@@ -32,15 +32,15 @@
 #include <cstdlib>
 #include <cstdio>
 #include <cstring>
-#include "mpi.h"
+#include <mpi.h>
 
-#include "ljs.h"
-#include "atom.h"
-#include "force.h"
-#include "neighbor.h"
-#include "integrate.h"
-#include "thermo.h"
-#include "types.h"
+#include <ljs.h>
+#include <atom.h>
+#include <force.h>
+#include <neighbor.h>
+#include <integrate.h>
+#include <thermo.h>
+#include <types.h>
 
 
 #define MAXLINE 256
