@@ -1,8 +1,8 @@
 # Supported: GCC, CLANG, ICC
 TAG ?= ICC
 # Supported: 1.2, 2.0
-VERSION ?= 2.0
-ENABLE_MPI ?= false
+VERSION ?= 1.2
+ENABLE_MPI ?= true
 ENABLE_LIKWID ?= false
 
 #Feature options

@@ -29,15 +29,16 @@
    Please read the accompanying README and LICENSE files.
 ---------------------------------------------------------------------- */
 
+#include <cstdlib>
+#include <cstdio>
+#include <cstring>
 #include <cmath>
-#include "stdio.h"
-#include "stdlib.h"
-#include "string.h"
-#include "force_eam.h"
-#include "atom.h"
-#include "comm.h"
-#include "neighbor.h"
-#include "memory.h"
+
+#include <force_eam.h>
+#include <atom.h>
+#include <comm.h>
+#include <neighbor.h>
+#include <memory.h>
 
 #define MAXLINE 1024
 
@@ -271,16 +272,12 @@ void ForceEAM::compute_fullneigh(Atom &atom, Neighbor &neighbor, Comm &comm, int
   // grow energy and fp arrays if necessary
   // need to be atom->nmax in length
 
-  #pragma omp master
-  {
     if(atom.nmax > nmax) {
       nmax = atom.nmax;
       rho = new MMD_float[nmax];
       fp = new MMD_float[nmax];
     }
-  }
 
-  #pragma omp barrier
   MMD_float* x = &atom.x[0][0];
   MMD_float* f = &atom.f[0][0];
   const int nlocal = atom.nlocal;
@@ -290,7 +287,6 @@ void ForceEAM::compute_fullneigh(Atom &atom, Neighbor &neighbor, Comm &comm, int
   // rho = density at each atom
   // loop over neighbors of my atoms
 
-  OMPFORSCHEDULE
   for(MMD_int i = 0; i < nlocal; i++) {
     int* neighs = &neighbor.neighbors[i * neighbor.maxneighs];
     const int jnum = neighbor.numneigh[i];
@@ -333,24 +329,17 @@ void ForceEAM::compute_fullneigh(Atom &atom, Neighbor &neighbor, Comm &comm, int
 
   }
 
-  // #pragma omp barrier
   // fp = derivative of embedding energy at each atom
   // phi = embedding energy at each atom
 
   // communicate derivative of embedding function
 
-  #pragma omp master
-  {
     communicate(atom, comm);
-  }
-
-  #pragma omp barrier
 
   MMD_float t_virial = 0;
   // compute forces on each atom
   // loop over neighbors of my atoms
 
-  OMPFORSCHEDULE
   for(MMD_int i = 0; i < nlocal; i++) {
     int* neighs = &neighbor.neighbors[i * neighbor.maxneighs];
     const int numneigh = neighbor.numneigh[i];
@@ -422,12 +411,8 @@ void ForceEAM::compute_fullneigh(Atom &atom, Neighbor &neighbor, Comm &comm, int
 
   }
 
-  #pragma omp atomic
   virial += t_virial;
-  #pragma omp atomic
   eng_vdwl += 2.0 * evdwl;
-
-  #pragma omp barrier
 }
 
 /* ----------------------------------------------------------------------

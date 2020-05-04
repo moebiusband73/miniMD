@@ -37,13 +37,6 @@
 #define FACTOR 0.999
 #define SMALL 1.0e-6
 
-inline int fetch_and_add(int* ptr, int value)
-{
-  int tmp = *ptr;
-  ptr[0] += value;
-  return tmp;
-}
-
 Neighbor::Neighbor(int ntypes_)
 {
   ncalls = 0;
@@ -224,7 +217,7 @@ void Neighbor::binatoms(Atom &atom, int count)
 
       if(bincount[ibin] < atoms_per_bin) {
         int ac;
-        ac = fetch_and_add(bincount + ibin, 1);
+        ac = bincount[ibin]++;
         bins[ibin * atoms_per_bin + ac] = i;
       } else resize = 1;
     }

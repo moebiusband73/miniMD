@@ -29,26 +29,25 @@
    Please read the accompanying README and LICENSE files.
 ---------------------------------------------------------------------- */
 
-#include "stdio.h"
-#include "stdlib.h"
-#include "mpi.h"
+#include <cstdlib>
+#include <cstdio>
+#include <cstring>
+#include <mpi.h>
 
 #include <likwid-markers.h>
 
-#include "variant.h"
-#include "ljs.h"
-#include "atom.h"
-#include "neighbor.h"
-#include "integrate.h"
-#include "thermo.h"
-#include "comm.h"
-#include "timer.h"
-#include "threadData.h"
-#include "string.h"
-#include "openmp.h"
-#include "force_eam.h"
-#include "force.h"
-#include "force_lj.h"
+#include <variant.h>
+#include <ljs.h>
+#include <atom.h>
+#include <neighbor.h>
+#include <integrate.h>
+#include <thermo.h>
+#include <comm.h>
+#include <timer.h>
+#include <threadData.h>
+#include <force.h>
+#include <force_eam.h>
+#include <force_lj.h>
 
 #define MAXLINE 256
 

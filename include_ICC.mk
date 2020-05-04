@@ -15,7 +15,7 @@ LINKER = $(CXX)
 
 #-O3 -fasm-blocks -fopenmp
 
-PROFILE  = #-g  -pg
+PROFILE  = -g # -pg
 # OPTS     = -Ofast -xCORE-AVX512 -qopt-zmm-usage=high -fasm-blocks -mGLOB_default_function_attrs="use_approx_f64_divide=true" $(PROFILE)
 # OPTS     = -Ofast -xCORE-AVX512 -qopt-zmm-usage=high
 # OPTS     =  -Ofast -xCORE-AVX2
@@ -31,7 +31,7 @@ ASFLAGS  = -masm=intel
 FCFLAGS  =
 LFLAGS   = $(PROFILE) $(OPTS)
 DEFINES  = -D_GNU_SOURCE
-INCLUDES = $(MPIINC) $(LIKWID_INC)
-LIBS     = $(LIKWID_LIB) -llikwid
+INCLUDES = $(MPIINC)
+LIBS     =
 
 

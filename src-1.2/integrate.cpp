@@ -27,181 +27,146 @@
    Christian Trott (crtrott@sandia.gov).
 
    Please read the accompanying README and LICENSE files.
----------------------------------------------------------------------- */
-//#define PRINTDEBUG(a) a
-#define PRINTDEBUG(a)
-#include "stdio.h"
-#include "integrate.h"
-#include "openmp.h"
+   ---------------------------------------------------------------------- */
+
+#include <cstdio>
 #include <cmath>
+
+#include <integrate.h>
 
 Integrate::Integrate() {sort_every=20;}
 Integrate::~Integrate() {}
 
 void Integrate::setup()
 {
-  dtforce = 0.5 * dt;
+    dtforce = 0.5 * dt;
 }
 
 void Integrate::initialIntegrate()
 {
-  OMPFORSCHEDULE
-  for(MMD_int i = 0; i < nlocal; i++) {
-    v[i * PAD + 0] += dtforce * f[i * PAD + 0];
-    v[i * PAD + 1] += dtforce * f[i * PAD + 1];
-    v[i * PAD + 2] += dtforce * f[i * PAD + 2];
-    x[i * PAD + 0] += dt * v[i * PAD + 0];
-    x[i * PAD + 1] += dt * v[i * PAD + 1];
-    x[i * PAD + 2] += dt * v[i * PAD + 2];
-  }
+    for(MMD_int i = 0; i < nlocal; i++) {
+        v[i * PAD + 0] += dtforce * f[i * PAD + 0];
+        v[i * PAD + 1] += dtforce * f[i * PAD + 1];
+        v[i * PAD + 2] += dtforce * f[i * PAD + 2];
+        x[i * PAD + 0] += dt * v[i * PAD + 0];
+        x[i * PAD + 1] += dt * v[i * PAD + 1];
+        x[i * PAD + 2] += dt * v[i * PAD + 2];
+    }
 }
 
 void Integrate::finalIntegrate()
 {
-  OMPFORSCHEDULE
-  for(MMD_int i = 0; i < nlocal; i++) {
-    v[i * PAD + 0] += dtforce * f[i * PAD + 0];
-    v[i * PAD + 1] += dtforce * f[i * PAD + 1];
-    v[i * PAD + 2] += dtforce * f[i * PAD + 2];
-  }
+    for(MMD_int i = 0; i < nlocal; i++) {
+        v[i * PAD + 0] += dtforce * f[i * PAD + 0];
+        v[i * PAD + 1] += dtforce * f[i * PAD + 1];
+        v[i * PAD + 2] += dtforce * f[i * PAD + 2];
+    }
 
 }
 
 void Integrate::run(Atom &atom, Force* force, Neighbor &neighbor,
-                    Comm &comm, Thermo &thermo, Timer &timer)
+        Comm &comm, Thermo &thermo, Timer &timer)
 {
-  int i, n;
+    int i, n;
 
-  comm.timer = &timer;
-  timer.array[TIME_TEST] = 0.0;
+    comm.timer = &timer;
+    timer.array[TIME_TEST] = 0.0;
 
-  int check_safeexchange = comm.check_safeexchange;
+    int check_safeexchange = comm.check_safeexchange;
 
-  mass = atom.mass;
-  dtforce = dtforce / mass;
-  //Use OpenMP threads only within the following loop containing the main loop.
-  //Do not use OpenMP for setup and postprocessing.
-  #pragma omp parallel private(i,n)
-  {
+    mass = atom.mass;
+    dtforce = dtforce / mass;
     int next_sort = sort_every>0?sort_every:ntimes+1;
 
     for(n = 0; n < ntimes; n++) {
 
-      #pragma omp barrier
+        x = &atom.x[0][0];
+        v = &atom.v[0][0];
+        f = &atom.f[0][0];
+        xold = &atom.xold[0][0];
+        nlocal = atom.nlocal;
 
-      x = &atom.x[0][0];
-      v = &atom.v[0][0];
-      f = &atom.f[0][0];
-      xold = &atom.xold[0][0];
-      nlocal = atom.nlocal;
+        initialIntegrate();
+        timer.stamp();
 
-      initialIntegrate();
+        if((n + 1) % neighbor.every) {
 
-      #pragma omp master
-      timer.stamp();
+            comm.communicate(atom);
+            timer.stamp(TIME_COMM);
 
-      if((n + 1) % neighbor.every) {
+        } else {
+            if(check_safeexchange) {
+                double d_max = 0;
 
-        comm.communicate(atom);
-        #pragma omp master
-        timer.stamp(TIME_COMM);
+                for(i = 0; i < atom.nlocal; i++) {
+                    double dx = (x[i * PAD + 0] - xold[i * PAD + 0]);
 
-      } else {
-        //these routines are not yet ported to OpenMP
-        {
-          if(check_safeexchange) {
-            #pragma omp master
-            {
-              double d_max = 0;
+                    if(dx > atom.box.xprd) dx -= atom.box.xprd;
 
-              for(i = 0; i < atom.nlocal; i++) {
-                double dx = (x[i * PAD + 0] - xold[i * PAD + 0]);
+                    if(dx < -atom.box.xprd) dx += atom.box.xprd;
 
-                if(dx > atom.box.xprd) dx -= atom.box.xprd;
+                    double dy = (x[i * PAD + 1] - xold[i * PAD + 1]);
 
-                if(dx < -atom.box.xprd) dx += atom.box.xprd;
+                    if(dy > atom.box.yprd) dy -= atom.box.yprd;
 
-                double dy = (x[i * PAD + 1] - xold[i * PAD + 1]);
+                    if(dy < -atom.box.yprd) dy += atom.box.yprd;
 
-                if(dy > atom.box.yprd) dy -= atom.box.yprd;
+                    double dz = (x[i * PAD + 2] - xold[i * PAD + 2]);
 
-                if(dy < -atom.box.yprd) dy += atom.box.yprd;
+                    if(dz > atom.box.zprd) dz -= atom.box.zprd;
 
-                double dz = (x[i * PAD + 2] - xold[i * PAD + 2]);
+                    if(dz < -atom.box.zprd) dz += atom.box.zprd;
 
-                if(dz > atom.box.zprd) dz -= atom.box.zprd;
+                    double d = dx * dx + dy * dy + dz * dz;
 
-                if(dz < -atom.box.zprd) dz += atom.box.zprd;
+                    if(d > d_max) d_max = d;
+                }
 
-                double d = dx * dx + dy * dy + dz * dz;
+                d_max = sqrt(d_max);
 
-                if(d > d_max) d_max = d;
-              }
+                if((d_max > atom.box.xhi - atom.box.xlo) || (d_max > atom.box.yhi - atom.box.ylo) || (d_max > atom.box.zhi - atom.box.zlo))
+                    printf("Warning: Atoms move further than your subdomain size, which will eventually cause lost atoms.\n"
+                            "Increase reneighboring frequency or choose a different processor grid\n"
+                            "Maximum move distance: %lf; Subdomain dimensions: %lf %lf %lf\n",
+                            d_max, atom.box.xhi - atom.box.xlo, atom.box.yhi - atom.box.ylo, atom.box.zhi - atom.box.zlo);
 
-              d_max = sqrt(d_max);
-
-              if((d_max > atom.box.xhi - atom.box.xlo) || (d_max > atom.box.yhi - atom.box.ylo) || (d_max > atom.box.zhi - atom.box.zlo))
-                printf("Warning: Atoms move further than your subdomain size, which will eventually cause lost atoms.\n"
-                "Increase reneighboring frequency or choose a different processor grid\n"
-                "Maximum move distance: %lf; Subdomain dimensions: %lf %lf %lf\n",
-                d_max, atom.box.xhi - atom.box.xlo, atom.box.yhi - atom.box.ylo, atom.box.zhi - atom.box.zlo);
 
             }
 
-          }
-
-
-          #pragma omp master
-          timer.stamp_extra_start();
-          comm.exchange(atom);
-          if(n+1>=next_sort) {
-            atom.sort(neighbor);
-            next_sort +=  sort_every;
-          }
-          comm.borders(atom);
-          #pragma omp master
-          {
+            timer.stamp_extra_start();
+            comm.exchange(atom);
+            if(n+1>=next_sort) {
+                atom.sort(neighbor);
+                next_sort +=  sort_every;
+            }
+            comm.borders(atom);
             timer.stamp_extra_stop(TIME_TEST);
             timer.stamp(TIME_COMM);
-          }
 
-          if(check_safeexchange)
-            for(int i = 0; i < PAD * atom.nlocal; i++) xold[i] = x[i];
+            if(check_safeexchange)
+                for(int i = 0; i < PAD * atom.nlocal; i++) xold[i] = x[i];
+
+            neighbor.build(atom);
+            timer.stamp(TIME_NEIGH);
         }
 
-        #pragma omp barrier
+        force->evflag = (n + 1) % thermo.nstat == 0;
+        force->compute(atom, neighbor, comm, comm.me);
 
-        neighbor.build(atom);
+        timer.stamp(TIME_FORCE);
 
-        // #pragma omp barrier
+        if(neighbor.halfneigh && neighbor.ghost_newton) {
+            comm.reverse_communicate(atom);
 
-        #pragma omp master
-        timer.stamp(TIME_NEIGH);
-      }
+            timer.stamp(TIME_COMM);
+        }
 
-      force->evflag = (n + 1) % thermo.nstat == 0;
-      force->compute(atom, neighbor, comm, comm.me);
+        v = &atom.v[0][0];
+        f = &atom.f[0][0];
+        nlocal = atom.nlocal;
 
-      #pragma omp master
-      timer.stamp(TIME_FORCE);
+        finalIntegrate();
 
-      if(neighbor.halfneigh && neighbor.ghost_newton) {
-        comm.reverse_communicate(atom);
-
-        #pragma omp master
-        timer.stamp(TIME_COMM);
-      }
-
-      v = &atom.v[0][0];
-      f = &atom.f[0][0];
-      nlocal = atom.nlocal;
-
-      #pragma omp barrier
-
-      finalIntegrate();
-
-      if(thermo.nstat) thermo.compute(n + 1, atom, neighbor, force, timer, comm);
-
+        if(thermo.nstat) thermo.compute(n + 1, atom, neighbor, force, timer, comm);
     }
-  } //end OpenMP parallel
 }
