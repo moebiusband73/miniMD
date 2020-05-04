@@ -37,6 +37,10 @@
 #include <force_lj.h>
 #include <likwid-markers.h>
 
+#ifndef VECTORLENGTH
+#define VECTORLENGTH 4
+#endif
+
 ForceLJ::ForceLJ()
 {
     cutforce = 0.0;

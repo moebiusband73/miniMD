@@ -29,25 +29,26 @@
    Please read the accompanying README and LICENSE files.
 ---------------------------------------------------------------------- */
 
-#include <cstdlib>
-#include <cstdio>
-#include <cstring>
-#include <mpi.h>
+#include "stdio.h"
+#include "stdlib.h"
+#include "mpi.h"
 
 #include <likwid-markers.h>
 
-#include <variant.h>
-#include <ljs.h>
-#include <atom.h>
-#include <neighbor.h>
-#include <integrate.h>
-#include <thermo.h>
-#include <comm.h>
-#include <timer.h>
-#include <threadData.h>
-#include <force.h>
-#include <force_eam.h>
-#include <force_lj.h>
+#include "variant.h"
+#include "ljs.h"
+#include "atom.h"
+#include "neighbor.h"
+#include "integrate.h"
+#include "thermo.h"
+#include "comm.h"
+#include "timer.h"
+#include "threadData.h"
+#include "string.h"
+#include "openmp.h"
+#include "force_eam.h"
+#include "force.h"
+#include "force_lj.h"
 
 #define MAXLINE 256
 
@@ -300,6 +301,8 @@ int main(int argc, char** argv)
 
   neighbor.ghost_newton = ghost_newton;
 
+  omp_set_num_threads(num_threads);
+
   neighbor.timer = &timer;
   force->timer = &timer;
   comm.check_safeexchange = check_safeexchange;
@@ -308,6 +311,16 @@ int main(int argc, char** argv)
   neighbor.halfneigh = halfneigh;
 
   if(halfneigh < 0) force->use_oldcompute = 1;
+
+  if(use_sse) {
+#ifdef VARIANT_REFERENCE
+
+    if(me == 0) printf("ERROR: Trying to run with -sse with miniMD reference version. Use SSE variant instead. Exiting.\n");
+
+    MPI_Finalize();
+    exit(0);
+#endif
+  }
 
   if(num_steps > 0) in.ntimes = num_steps;
 
@@ -398,6 +411,7 @@ int main(int argc, char** argv)
     fprintf(stdout, "# " VARIANT_STRING " output ...\n");
     fprintf(stdout, "# Run Settings: \n");
     fprintf(stdout, "\t# MPI processes: %i\n", neighbor.threads->mpi_num_threads);
+    fprintf(stdout, "\t# OpenMP threads: %i\n", neighbor.threads->omp_num_threads);
     fprintf(stdout, "\t# Inputfile: %s\n", input_file == 0 ? "in.lj.miniMD" : input_file);
     fprintf(stdout, "\t# Datafile: %s\n", in.datafile ? in.datafile : "None");
     fprintf(stdout, "# Physics Settings: \n");
@@ -428,8 +442,11 @@ int main(int argc, char** argv)
   comm.borders(atom);
 
   force->evflag = 1;
-  neighbor.build(atom);
-  force->compute(atom, neighbor, comm, me);
+  #pragma omp parallel
+  {
+    neighbor.build(atom);
+    force->compute(atom, neighbor, comm, me);
+  }
 
   if(neighbor.halfneigh && neighbor.ghost_newton)
     comm.reverse_communicate(atom);
@@ -438,7 +455,10 @@ int main(int argc, char** argv)
 
   if(me == 0) printf("# Timestep T U P Time\n");
 
-  thermo.compute(0, atom, neighbor, force, timer, comm);
+  #pragma omp parallel
+  {
+    thermo.compute(0, atom, neighbor, force, timer, comm);
+  }
 
   timer.barrier_start(TIME_TOTAL);
   integrate.run(atom, force, neighbor, comm, thermo, timer);
@@ -459,9 +479,10 @@ int main(int argc, char** argv)
     double time_other = timer.array[TIME_TOTAL] - timer.array[TIME_FORCE] - timer.array[TIME_NEIGH] - timer.array[TIME_COMM];
     printf("\n\n");
     printf("# Performance Summary:\n");
-    printf("# MPI_proc nsteps natoms t_total t_force t_neigh t_comm t_other performance perf/thread grep_string t_extra\n");
-    printf("%i %i %i %lf %lf %lf %lf %lf %lf %lf PERF_SUMMARY %lf\n\n\n",
+    printf("# MPI_proc OMP_threads nsteps natoms t_total t_force t_neigh t_comm t_other performance perf/thread grep_string t_extra\n");
+    printf("%i %i %i %i %lf %lf %lf %lf %lf %lf %lf PERF_SUMMARY %lf\n\n\n",
            nprocs,
+	   num_threads,
 	   integrate.ntimes,
 	   natoms,
            timer.array[TIME_TOTAL],
@@ -470,7 +491,7 @@ int main(int argc, char** argv)
 	   timer.array[TIME_COMM],
 	   time_other,
            1.0 * natoms * integrate.ntimes / timer.array[TIME_TOTAL],
-	   1.0 * natoms * integrate.ntimes / timer.array[TIME_TOTAL] / nprocs,
+	   1.0 * natoms * integrate.ntimes / timer.array[TIME_TOTAL] / nprocs / num_threads,
 	   timer.array[TIME_TEST]);
 
   }
