@@ -235,9 +235,6 @@ Scaling run with AVX512 on CascadeLake with 24 core per socket and fixed frequen
 | 22 |  0.984  | 1.016260163  |
 | 24 |  0.891  | 1.122334456  |
 
-```
-Verbatim Text
-```
 
 <!-----------------------------------------------------------------------------
 Document the initial performance which serves as baseline for further progress
@@ -261,6 +258,76 @@ likwid-perfctr -g FLOPS_DP -m -C S0:2   ../miniMD-ICC  --half_neigh 1 -n 100
 * CPI: 0.7918
 * INS TOTAL: 21897400000
 * INS ARITH: 10682030000
+* Percentage Arithmetic:
+
+## Variant half-neigh SSE
+
+Compilation flags used:
+```
+-Ofast -xSSE4.2
+```
+Command line:
+```
+likwid-perfctr -g FLOPS_DP -m -C S0:2   ../miniMD-ICC  --half_neigh 1 -n 100
+```
+* Time to solution:
+* Performance:
+* CPI:
+* INS TOTAL:
+* INS ARITH:
+* Percentage Arithmetic:
+
+## Variant half-neigh AVX
+
+Compilation flags used:
+```
+-Ofast -xAVX
+```
+Command line:
+```
+likwid-perfctr -g FLOPS_DP -m -C S0:2   ../miniMD-ICC  --half_neigh 1 -n 100
+```
+* Time to solution:
+* Performance:
+* CPI:
+* INS TOTAL:
+* INS ARITH:
+* Percentage Arithmetic:
+
+## Variant half-neigh AVX2
+
+Compilation flags used:
+```
+-Ofast -xCORE-AVX2
+```
+Command line:
+```
+likwid-perfctr -g FLOPS_DP -m -C S0:2   ../miniMD-ICC  --half_neigh 1 -n 100
+```
+* Time to solution:
+* Performance:
+* CPI:
+* INS TOTAL:
+* INS ARITH:
+* Percentage Arithmetic:
+
+## Variant half-neigh AVX-512
+
+Compilation flags used:
+```
+
+```
+Command line:
+```
+likwid-perfctr -g FLOPS_DP -m -C S0:2   ../miniMD-ICC  --half_neigh 1 -n 100
+```
+* Time to solution:
+* Performance:
+* CPI:
+* INS TOTAL:
+* INS ARITH:
+* Percentage Arithmetic:
+
 
 ## Baseline full-neigh
 
@@ -279,6 +346,88 @@ likwid-perfctr -g FLOPS_DP -m -C S0:2   ../miniMD-ICC  --half_neigh 0 -n 100
 * CPI: 0.8224
 * INS TOTAL: 34574980000
 * INS ARITH: 18430610000
+* Percentage Arithmetic:
+
+## Benchmarking JE-B-2
+
+### Testsystem
+
+* Host/Clustername: RRZE test cluster
+* Cluster Info URL: no web page
+* CPU type: Intel(R) Xeon(R) CPU E5-2680 0 @ 2.70GHz
+* Memory capacity: 64GB
+* Number of cores per socket: 8
+* Interconnect: no high speed interconnect
+
+### Software Environment
+
+**Compiler**:
+* Vendor: Intel
+* Version: icpc (ICC)  18.0.5 20180823
+
+**OS**:
+* Distribution: Ubuntu
+* Version: 18.04.2 LTS
+* Kernel version: Linux 4.15.0-51-generic
+
+<!-----------------------------------------------------------------------------
+Document the initial performance which serves as baseline for further progress
+and is used to compute the achieved speedup. Document exactly how the baseline
+was created.
+------------------------------------------------------------------------------>
+## Baseline half-neigh
+
+The baseline is the sequential scalar variant.
+Compilation flags used:
+```
+-restrict -O3 -no-vec
+```
+
+Command line:
+```
+likwid-perfctr -g FLOPS_DP -m -C S0:2   ../miniMD-ICC  --half_neigh 1 -n 100
+```
+* Time to solution: 
+* Performance: 
+* CPI: 
+* INS TOTAL: 
+* INS ARITH: 
+* Percentage Arithmetic:
+
+## Variant half-neigh SSE
+
+Compilation flags used:
+```
+-Ofast -xSSE4.2
+```
+Command line:
+```
+likwid-perfctr -g FLOPS_DP -m -C S0:2   ../miniMD-ICC  --half_neigh 1 -n 100
+```
+* Time to solution:
+* Performance:
+* CPI:
+* INS TOTAL:
+* INS ARITH:
+* Percentage Arithmetic:
+
+## Variant half-neigh AVX
+
+Compilation flags used:
+```
+-Ofast -xAVX
+```
+Command line:
+```
+likwid-perfctr -g FLOPS_DP -m -C S0:2   ../miniMD-ICC  --half_neigh 1 -n 100
+```
+* Time to solution:
+* Performance:
+* CPI:
+* INS TOTAL:
+* INS ARITH:
+* Percentage Arithmetic:
+
 
 <!-----------------------------------------------------------------------------
 Explain which tool was used and how the measurements were done. Store and
