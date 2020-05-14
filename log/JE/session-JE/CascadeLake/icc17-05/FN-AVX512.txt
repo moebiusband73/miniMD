@@ -1,0 +1,81 @@
+--------------------------------------------------------------------------------
+CPU name:	Intel(R) Xeon(R) Gold 6248 CPU @ 2.50GHz
+CPU type:	Intel Cascadelake SP processor
+CPU clock:	2.49 GHz
+--------------------------------------------------------------------------------
+# Create System:
+# Done .... 
+# miniMD-Reference 1.2 (MPI+OpenMP) output ...
+# Run Settings: 
+	# MPI processes: 1
+	# OpenMP threads: 1
+	# Inputfile: in.lj.miniMD
+	# Datafile: None
+# Physics Settings: 
+	# ForceStyle: LJ
+	# Force Parameters: 1.00 1.00
+	# Units: LJ
+	# Atoms: 131072
+	# System size: 53.75 53.75 53.75 (unit cells: 32 32 32)
+	# Density: 0.844200
+	# Force cutoff: 2.500000
+	# Timestep size: 0.005000
+# Technical Settings: 
+	# Neigh cutoff: 2.800000
+	# Half neighborlists: 0
+	# Neighbor bins: 26 26 26
+	# Neighbor frequency: 20
+	# Sorting frequency: 20
+	# Thermo frequency: 100
+	# Ghost Newton: 1
+	# Use intrinsics: 0
+	# Do safe exchange: 0
+	# Size of float: 8
+
+# Starting dynamics ...
+# Timestep T U P Time
+0 1.440000e+00 0.000000e+00 1.215639e+00  0.000
+100 8.200911e-01 0.000000e+00 6.923156e-01  5.486
+
+
+# Performance Summary:
+# MPI_proc OMP_threads nsteps natoms t_total t_force t_neigh t_comm t_other performance perf/thread grep_string t_extra
+1 1 100 131072 5.486514 2.855235 2.450414 0.060912 0.119954 2388985.024266 2388985.024266 PERF_SUMMARY 0.028673
+
+
+--------------------------------------------------------------------------------
+Region fullneigh, Group 1: FLOPS_DP
++-------------------+----------+
+|    Region Info    |  Core 2  |
++-------------------+----------+
+| RDTSC Runtime [s] | 2.869025 |
+|     call count    |      102 |
++-------------------+----------+
+
++------------------------------------------+---------+------------+
+|                   Event                  | Counter |   Core 2   |
++------------------------------------------+---------+------------+
+|             INSTR_RETIRED_ANY            |  FIXC0  | 8997794000 |
+|           CPU_CLK_UNHALTED_CORE          |  FIXC1  | 7120007000 |
+|           CPU_CLK_UNHALTED_REF           |  FIXC2  | 7120010000 |
+| FP_ARITH_INST_RETIRED_128B_PACKED_DOUBLE |   PMC0  |          0 |
+|    FP_ARITH_INST_RETIRED_SCALAR_DOUBLE   |   PMC1  |  889881800 |
+| FP_ARITH_INST_RETIRED_256B_PACKED_DOUBLE |   PMC2  |          0 |
+| FP_ARITH_INST_RETIRED_512B_PACKED_DOUBLE |   PMC3  | 3037035000 |
++------------------------------------------+---------+------------+
+
++----------------------+-----------+
+|        Metric        |   Core 2  |
++----------------------+-----------+
+|  Runtime (RDTSC) [s] |    2.8690 |
+| Runtime unhalted [s] |    2.8548 |
+|      Clock [MHz]     | 2494.0850 |
+|          CPI         |    0.7913 |
+|     DP [MFLOP/s]     | 8778.6484 |
+|   AVX DP [MFLOP/s]   | 8468.4797 |
+|  AVX512 DP [MFLOP/s] | 8468.4797 |
+|   Packed [MUOPS/s]   | 1058.5600 |
+|   Scalar [MUOPS/s]   |  310.1687 |
+|  Vectorization ratio |   77.3389 |
++----------------------+-----------+
+
