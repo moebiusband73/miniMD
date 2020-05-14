@@ -37,6 +37,10 @@
 #include <force_lj.h>
 #include <likwid-markers.h>
 
+#ifndef VECTORLENGTH
+#define VECTORLENGTH 4
+#endif
+
 ForceLJ::ForceLJ()
 {
     cutforce = 0.0;
@@ -102,9 +106,7 @@ void ForceLJ::compute_halfneigh(Atom &atom, Neighbor &neighbor, int me)
         MMD_float fiy = 0.0;
         MMD_float fiz = 0.0;
 
-#ifdef USE_SIMD
 #pragma simd reduction (+: fix,fiy,fiz)
-#endif
         for(int k = 0; k < numneighs; k++) {
             const int j = neighs[k];
             const MMD_float delx = xtmp - x[j * PAD + 0];

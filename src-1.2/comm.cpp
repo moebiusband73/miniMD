@@ -29,11 +29,11 @@
    Please read the accompanying README and LICENSE files.
 ---------------------------------------------------------------------- */
 
-#include <cstdlib>
-#include <cstdio>
-#include <mpi.h>
-
-#include <comm.h>
+#include "stdio.h"
+#include "stdlib.h"
+#include "mpi.h"
+#include "comm.h"
+#include "openmp.h"
 
 #define BUFFACTOR 1.5
 #define BUFMIN 1000
@@ -291,12 +291,17 @@ void Comm::communicate(Atom &atom)
     pbc_flags[2] = pbc_flagy[iswap];
     pbc_flags[3] = pbc_flagz[iswap];
 
+    //#pragma omp barrier
     atom.pack_comm(sendnum[iswap], sendlist[iswap], buf_send, pbc_flags);
+
+    //#pragma omp barrier
 
     /* exchange with another proc
        if self, set recv buffer to send buffer */
 
     if(sendproc[iswap] != me) {
+      #pragma omp master
+      {
         if(sizeof(MMD_float) == 4) {
           MPI_Irecv(buf_recv, comm_recv_size[iswap], MPI_FLOAT,
           recvproc[iswap], 0, MPI_COMM_WORLD, &request);
@@ -310,11 +315,15 @@ void Comm::communicate(Atom &atom)
         }
 
         MPI_Wait(&request, &status);
+      }
       buf = buf_recv;
     } else buf = buf_send;
 
+    #pragma omp barrier
     /* unpack buffer */
+
     atom.unpack_comm(recvnum[iswap], firstrecv[iswap], buf);
+    //#pragma omp barrier
   }
 }
 
@@ -331,13 +340,17 @@ void Comm::reverse_communicate(Atom &atom)
 
     /* pack buffer */
 
+    // #pragma omp barrier
     atom.pack_reverse(recvnum[iswap], firstrecv[iswap], buf_send);
 
+    // #pragma omp barrier
     /* exchange with another proc
        if self, set recv buffer to send buffer */
 
     if(sendproc[iswap] != me) {
 
+      #pragma omp master
+      {
         if(sizeof(MMD_float) == 4) {
           MPI_Irecv(buf_recv, reverse_recv_size[iswap], MPI_FLOAT,
           sendproc[iswap], 0, MPI_COMM_WORLD, &request);
@@ -350,12 +363,15 @@ void Comm::reverse_communicate(Atom &atom)
           recvproc[iswap], 0, MPI_COMM_WORLD);
         }
         MPI_Wait(&request, &status);
+      }
       buf = buf_recv;
     } else buf = buf_send;
 
     /* unpack buffer */
 
+    #pragma omp barrier
     atom.unpack_reverse(sendnum[iswap], sendlist[iswap], buf);
+    // #pragma omp barrier
   }
 }
 
@@ -379,12 +395,16 @@ void Comm::exchange(Atom &atom)
   MPI_Status status;
 
   /* enforce PBC */
+
   atom.pbc();
 
   /* loop over dimensions */
+  int tid = omp_get_thread_num();
+
   for(idim = 0; idim < 3; idim++) {
 
     /* only exchange if more than one proc in this dimension */
+
     if(procgrid[idim] == 1) continue;
 
     /* fill buffer with atoms leaving my box
@@ -407,6 +427,8 @@ void Comm::exchange(Atom &atom)
 
     nlocal = atom.nlocal;
 
+    #pragma omp master
+    {
       if(nlocal > maxnlocal) {
         send_flag = new int[nlocal];
         maxnlocal = nlocal;
@@ -425,13 +447,19 @@ void Comm::exchange(Atom &atom)
           exc_sendlist_thread[i] = (int*) malloc(maxsend * sizeof(int));
         }
       }
+    }
+
+    #pragma omp barrier
 
     nsend = 0;
+    #pragma omp for
 
     for(int i = 0; i < threads->omp_num_threads; i++) {
       nsend_thread[i] = 0;
       nholes_thread[i] = 0;
     }
+
+    #pragma omp for
 
     for(int i = 0; i < nlocal; i++) {
       if(x[i][idim] < lo || x[i][idim] >= hi) {
@@ -448,6 +476,10 @@ void Comm::exchange(Atom &atom)
 
     nsend_thread[tid] = nsend;
 
+    #pragma omp barrier
+
+    #pragma omp master
+    {
       int total_nsend = 0;
 
       for(int i = 0; i < threads->omp_num_threads; i++) {
@@ -456,8 +488,10 @@ void Comm::exchange(Atom &atom)
       }
 
       if(total_nsend * 6 > maxsend) growsend(total_nsend * 6);
+    }
+    #pragma omp barrier
 
-    total_nsend = nsend_thread[threads->omp_num_threads - 1];
+    int total_nsend = nsend_thread[threads->omp_num_threads - 1];
     int nholes = 0;
 
     for(int i = 0; i < nsend; i++)
@@ -465,12 +499,18 @@ void Comm::exchange(Atom &atom)
         nholes++;
 
     nholes_thread[tid] = nholes;
+    #pragma omp barrier
+
+    #pragma omp master
+    {
       int total_nholes = 0;
 
       for(int i = 0; i < threads->omp_num_threads; i++) {
         total_nholes += nholes_thread[i];
         nholes_thread[i] = total_nholes;
       }
+    }
+    #pragma omp barrier
 
     int j = nlocal;
     int holes = 0;
@@ -494,6 +534,9 @@ void Comm::exchange(Atom &atom)
     }
 
     nsend *= 6;
+    #pragma omp barrier
+    #pragma omp master
+    {
       atom.nlocal = nlocal - total_nsend;
       nsend = total_nsend * 6;
 
@@ -543,10 +586,15 @@ void Comm::exchange(Atom &atom)
       for(int i = 0; i < threads->omp_num_threads; i++)
         nrecv_thread[i] = 0;
 
+    }
     /* check incoming atoms to see if they are in my box
        if they are, add to my list */
 
+    #pragma omp barrier
+
     nrecv = 0;
+
+    #pragma omp for
 
     for(int i = 0; i < nrecv_atoms; i++) {
       value = buf_recv[i * 6 + idim];
@@ -557,6 +605,10 @@ void Comm::exchange(Atom &atom)
 
     nrecv_thread[tid] = nrecv;
     nlocal = atom.nlocal;
+    #pragma omp barrier
+
+    #pragma omp master
+    {
       int total_nrecv = 0;
 
       for(int i = 0; i < threads->omp_num_threads; i++) {
@@ -565,8 +617,11 @@ void Comm::exchange(Atom &atom)
       }
 
       atom.nlocal += total_nrecv;
+    }
+    #pragma omp barrier
 
     int copyinpos = nlocal + nrecv_thread[tid] - nrecv;
+    #pragma omp for
 
     for(int i = 0; i < nrecv_atoms; i++) {
       value = buf_recv[i * 6 + idim];
@@ -574,6 +629,9 @@ void Comm::exchange(Atom &atom)
       if(value >= lo && value < hi)
         atom.unpack_exchange(copyinpos++, &buf_recv[i * 6]);
     }
+
+    // #pragma omp barrier
+
   }
 }
 
@@ -704,8 +762,10 @@ void Comm::borders(Atom &atom)
 
   iswap = 0;
 
-  int tid = 1;
+  int tid = omp_get_thread_num();
 
+    #pragma omp master
+    {
       if(atom.nlocal > maxnlocal) {
         send_flag = new int[atom.nlocal];
         maxnlocal = atom.nlocal;
@@ -724,6 +784,7 @@ void Comm::borders(Atom &atom)
           exc_sendlist_thread[i] = (int*) malloc(maxsend * sizeof(int));
         }
       }
+    }
 
   for(idim = 0; idim < 3; idim++) {
     nlast = 0;
@@ -750,12 +811,17 @@ void Comm::borders(Atom &atom)
         nlast = atom.nlocal + atom.nghost;
       }
 
+      #pragma omp for
+
       for(int i = 0; i < threads->omp_num_threads; i++) {
         nsend_thread[i] = 0;
       }
 
+      //#pragma omp barrier
       nsend = 0;
       m = 0;
+
+      #pragma omp for
 
       for(int i = nfirst; i < nlast; i++) {
         if(x[i][idim] >= lo && x[i][idim] <= hi) {
@@ -770,6 +836,10 @@ void Comm::borders(Atom &atom)
 
       nsend_thread[tid] = nsend;
 
+      #pragma omp barrier
+
+      #pragma omp master
+      {
         int total_nsend = 0;
 
         for(int i = 0; i < threads->omp_num_threads; i++) {
@@ -780,17 +850,23 @@ void Comm::borders(Atom &atom)
         if(total_nsend > maxsendlist[iswap]) growlist(iswap, total_nsend);
 
         if(total_nsend * 3 > maxsend) growsend(total_nsend * 3);
+      }
+      #pragma omp barrier
 
       for(int k = 0; k < nsend; k++) {
         atom.pack_border(exc_sendlist_thread[tid][k], &buf_send[(k + nsend_thread[tid] - nsend) * 3], pbc_flags);
         sendlist[iswap][k + nsend_thread[tid] - nsend] = exc_sendlist_thread[tid][k];
       }
 
+      #pragma omp barrier
+
 
       /* swap atoms with other proc
       put incoming ghosts at end of my atom arrays
       if swapping with self, simply copy, no messages */
 
+      #pragma omp master
+      {
         nsend = nsend_thread[threads->omp_num_threads - 1];
 
         if(sendproc[iswap] != me) {
@@ -819,15 +895,24 @@ void Comm::borders(Atom &atom)
         }
 
         nrecv_atoms = nrecv;
+      }
       /* unpack buffer */
 
+      #pragma omp barrier
       n = atom.nlocal + atom.nghost;
       nrecv = nrecv_atoms;
+
+      #pragma omp for
 
       for(int i = 0; i < nrecv; i++)
         atom.unpack_border(n + i, &buf[i * 3]);
 
+      // #pragma omp barrier
+
       /* set all pointers & counters */
+
+      #pragma omp master
+      {
         sendnum[iswap] = nsend;
         recvnum[iswap] = nrecv;
         comm_send_size[iswap] = nsend * atom.comm_size;
@@ -836,6 +921,8 @@ void Comm::borders(Atom &atom)
         reverse_recv_size[iswap] = nsend * atom.reverse_size;
         firstrecv[iswap] = atom.nlocal + atom.nghost;
         atom.nghost += nrecv;
+      }
+      #pragma omp barrier
       iswap++;
     }
   }

@@ -51,11 +51,11 @@ inline int omp_set_num_threads(int num_threads)
 {
   return 1;
 }
-inline int __sync_fetch_and_add(int* ptr, int value)
-{
-  int tmp = *ptr;
-  ptr[0] += value;
-  return tmp;
-}
+/* inline int __sync_fetch_and_add(int* ptr, int value) */
+/* { */
+/*   int tmp = *ptr; */
+/*   ptr[0] += value; */
+/*   return tmp; */
+/* } */
 #endif
 
