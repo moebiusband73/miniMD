@@ -29,12 +29,10 @@
    Please read the accompanying README and LICENSE files.
 ---------------------------------------------------------------------- */
 
-#include <cstdlib>
-#include <cstdio>
-#include <cstring>
-#include <cmath>
-
-#include <force_lj.h>
+#include "stdio.h"
+#include "math.h"
+#include "force_lj.h"
+#include "openmp.h"
 
 #ifndef VECTORLENGTH
 #define VECTORLENGTH 4
@@ -282,7 +280,10 @@ void ForceLJ::compute_halfneigh_threaded(Atom &atom, Neighbor &neighbor, int me)
   MMD_float* const f = atom.f;
   const int* const type = atom.type;
 
+  #pragma omp barrier
   // clear force on own and ghost atoms
+
+  OMPFORSCHEDULE
   for(int i = 0; i < nall; i++) {
     f[i * PAD + 0] = 0.0;
     f[i * PAD + 1] = 0.0;
@@ -292,6 +293,7 @@ void ForceLJ::compute_halfneigh_threaded(Atom &atom, Neighbor &neighbor, int me)
   // loop over all neighbors of my atoms
   // store force on both atoms i and j
 
+  OMPFORSCHEDULE
   for(int i = 0; i < nlocal; i++) {
     const int* const neighs = &neighbor.neighbors[i * neighbor.maxneighs];
     const int numneighs = neighbor.numneigh[i];
@@ -322,8 +324,11 @@ void ForceLJ::compute_halfneigh_threaded(Atom &atom, Neighbor &neighbor, int me)
         fiz += delz * force;
 
         if(GHOST_NEWTON || j < nlocal) {
+          #pragma omp atomic
           f[j * PAD + 0] -= delx * force;
+          #pragma omp atomic
           f[j * PAD + 1] -= dely * force;
+          #pragma omp atomic
           f[j * PAD + 2] -= delz * force;
         }
 
@@ -335,14 +340,20 @@ void ForceLJ::compute_halfneigh_threaded(Atom &atom, Neighbor &neighbor, int me)
       }
     }
 
+    #pragma omp atomic
     f[i * PAD + 0] += fix;
+    #pragma omp atomic
     f[i * PAD + 1] += fiy;
+    #pragma omp atomic
     f[i * PAD + 2] += fiz;
   }
 
+  #pragma omp atomic
   eng_vdwl += t_eng_vdwl;
+  #pragma omp atomic
   virial += t_virial;
 
+  #pragma omp barrier
 }
 
 //optimised version of compute
@@ -364,7 +375,10 @@ void ForceLJ::compute_fullneigh(Atom &atom, Neighbor &neighbor, int me)
   MMD_float* const f = atom.f;
   const int* const type = atom.type;
 
+  #pragma omp barrier
   // clear force on own and ghost atoms
+
+  OMPFORSCHEDULE
   for(int i = 0; i < nlocal; i++) {
     f[i * PAD + 0] = 0.0;
     f[i * PAD + 1] = 0.0;
@@ -374,6 +388,7 @@ void ForceLJ::compute_fullneigh(Atom &atom, Neighbor &neighbor, int me)
   // loop over all neighbors of my atoms
   // store force on atom i
 
+  OMPFORSCHEDULE
   for(int i = 0; i < nlocal; i++) {
     const int* const neighs = &neighbor.neighbors[i * neighbor.maxneighs];
     const int numneighs = neighbor.numneigh[i];
@@ -414,6 +429,7 @@ void ForceLJ::compute_fullneigh(Atom &atom, Neighbor &neighbor, int me)
           t_virial += (delx * delx + dely * dely + delz * delz) * force;
         }
       }
+      
     }
 
     f[i * PAD + 0] += fix;
@@ -425,8 +441,11 @@ void ForceLJ::compute_fullneigh(Atom &atom, Neighbor &neighbor, int me)
   t_eng_vdwl *= 4.0;
   t_virial *= 0.5;
 
+  #pragma omp atomic
   eng_vdwl += t_eng_vdwl;
+  #pragma omp atomic
   virial += t_virial;
+  #pragma omp barrier
 }
 
 
